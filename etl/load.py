@@ -53,7 +53,6 @@ def insert_weather(conn, weather_data: list[dict]):
 
 def main():
     weather_data = extract_all()
-
     conn = get_connection()
     try:
         create_tables(conn)

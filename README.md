@@ -1,23 +1,46 @@
-# 🌤 Weather ETL Pipeline
+# 🌤 Weather ELT Pipeline
 
-ETL-пайплайн для сбора, трансформации и визуализации данных о погоде из OpenWeatherMap.
+ELT-пайплайн для сбора, загрузки и трансформации данных о погоде из OpenWeatherMap.
 
 ## 🎯 Что делает
 
 1. **Extract** — забирает текущую погоду из OpenWeatherMap по списку городов.
-2. **Load** — загружает сырые данные в PostgreSQL.
-3. **Transform** — агрегирует данные в витрину `daily_weather_summary` (средняя/мин/макс температура, влажность, количество замеров за день).
+2. **Load** — загружает **сырые** данные в PostgreSQL (таблица `raw_weather`).
+3. **Transform** — агрегирует данные **внутри PostgreSQL** в витрину `daily_weather_summary` (средняя/мин/макс температура, влажность, количество замеров за день).
 4. **Dashboard** — визуализирует данные через Streamlit.
 
-## 🏗 Архитектура
+## 🏗 Архитектура (ELT)
 
-OpenWeatherMap API → extract.py → PostgreSQL (raw_weather)
-                                       ↓
-                                  transform.py
-                                       ↓
-                             daily_weather_summary
-                                       ↓
-                                  Streamlit Dashboard
+```
+OpenWeatherMap API
+        ↓
+   extract.py                (Extract)
+        ↓
+   raw_weather               (Load — сырые данные)
+        ↓
+   transform.py              (Transform — SQL внутри PostgreSQL)
+        ↓
+   daily_weather_summary     (витрина с агрегатами)
+        ↓
+   Streamlit Dashboard       (визуализация)
+```
+
+## 🧠 Почему ELT, а не ETL
+
+Этот проект реализует **ELT-подход** (Extract → Load → Transform), а не классический ETL:
+
+| Подход | Очерёдность | Где трансформация |
+|--------|-------------|-------------------|
+| **ETL** | Extract → Transform → Load | Transform вне DWH (отдельный сервер) |
+| **ELT** | Extract → Load → Transform | Transform внутри DWH (SQL в самой БД) |
+
+**Почему мы используем ELT:**
+
+- **Простота.** Не нужен отдельный ETL-сервер и `pandas` для агрегаций.
+- **Скорость.** PostgreSQL делает `GROUP BY` быстрее, чем Python на больших объёмах.
+- **Гибкость.** Сырые данные (`raw_weather`) остаются в БД — витрину можно пересчитать в любой момент.
+- **Идемпотентность.** `ON CONFLICT DO UPDATE` позволяет запускать пайплайн многократно без дублей.
+- **Современный подход.** ELT — стандарт для облачных DWH (BigQuery, Snowflake, Redshift).
 
 ## 🛠 Стек технологий
 
@@ -33,8 +56,8 @@ OpenWeatherMap API → extract.py → PostgreSQL (raw_weather)
 ### 1. Клонировать репозиторий
 
 ```bash
-git clone https://github.com/your_username/weather_etl_pipeline.git
-cd weather_etl_pipeline
+git clone https://github.com/KudakovSergey/pet_project_ELT.git
+cd pet_project_ELT
 ```
 
 ### 2. Установить зависимости
@@ -57,7 +80,7 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-### 5. Запустить ETL-пайплайн
+### 5. Запустить ELT-пайплайн
 
 ```bash
 python -m etl.main
@@ -74,14 +97,15 @@ streamlit run dashboard/app.py
 ## 📂 Структура проекта
 
 ```
-weather_etl_pipeline/
+weather_elt_pipeline/
 ├── dashboard/
 │   └── app.py              # Streamlit-дашборд
 ├── etl/
-│   ├── extract.py          # Сбор данных из API
-│   ├── transform.py        # Агрегация данных
-│   ├── load.py             # Загрузка в PostgreSQL
-│   └── main.py             # Единый пайплайн
+│   ├── __init__.py
+│   ├── extract.py          # Extract — сбор данных из API
+│   ├── load.py             # Load — загрузка сырых данных в PostgreSQL
+│   ├── transform.py        # Transform — агрегация в SQL
+│   └── main.py             # Оркестрация пайплайна
 ├── sql/
 │   └── create_tables.sql   # DDL таблиц
 ├── docker-compose.yml      # PostgreSQL в Docker
@@ -104,6 +128,7 @@ weather_etl_pipeline/
 - Расширить список городов и метрик (давление, ветер).
 - Подключить **dbt** для декларативных трансформаций.
 - Настроить **CI/CD** через GitHub Actions.
+- Добавить **dbt** для декларативных трансформаций.
 
 ## 📜 Лицензия
 

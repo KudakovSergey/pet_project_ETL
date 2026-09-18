@@ -4,7 +4,7 @@ from etl.transform import build_daily_summary
 
 
 def run_pipeline():
-    print("🚀 Запуск ETL-пайплайна...")
+    print("🚀 Запуск ELT-пайплайна...")
 
     # 1. Extract
     print("\n📥 Шаг 1: Извлечение данных из API...")
@@ -27,7 +27,7 @@ def run_pipeline():
     finally:
         conn.close()
 
-    print("\n✅ ETL-пайплайн завершён успешно!")
+    print("\n✅ ELT-пайплайн завершён успешно!")
 
 
 if __name__ == "__main__":
